@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lockstep — a co-op puzzle you play *with* an AI agent</title>
+<meta name="description" content="A 2D co-op puzzle game. You move the human. An AI agent moves the robot — through WebMCP tools, not screenshots. Neither of you can finish alone." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>" />
+</head>
+<body>
+
+<!-- ============ INTRO ============ -->
+<div class="intro" id="intro">
+  <div class="intro__card">
+    <div class="intro__logo">LOCK<span>STEP</span></div>
+    <p class="intro__tag">A co-op puzzle you play <i>with</i> an AI agent.</p>
+
+    <div class="intro__row">
+      <div class="ichar ichar--h">🧑</div>
+      <div class="ivs">+</div>
+      <div class="ichar ichar--r">🤖</div>
+    </div>
+
+    <p class="intro__body">
+      You control the <b class="ch">human</b>. An AI agent controls the <b class="cr">robot</b>.
+      Coloured doors only open while someone stands on the matching plate — so
+      <b>neither of you can finish alone</b>.
+    </p>
+    <p class="intro__body intro__body--dim">
+      The agent doesn't look at pixels or guess where to click. It calls
+      <code>get_game_state</code> and <code>move_robot</code> — real WebMCP tools this page exposes.
+    </p>
+
+    <div class="intro__keys">
+      <span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to move</span>
+    </div>
+
+    <div class="intro__btns">
+      <button class="btn btn--primary btn--lg" id="introPlay">▶ Play with the built-in agent</button>
+      <button class="btn btn--ghost btn--lg" id="introSolo">Just look around</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- ============ LEFT : GAME ============ -->
+  <main class="pane pane--game">
+
+    <header class="top">
+      <div class="top__brand">
+        <div class="brandmark">LOCK<span>STEP</span></div>
+        <button class="btn btn--ghost btn--xs" id="helpBtn">? How it works</button>
+      </div>
+      <div id="mcpBadge" class="mcp-badge mcp-badge--off">
+        <span class="dot"></span><span id="mcpBadgeText">Detecting WebMCP…</span>
+      </div>
+    </header>
+
+    <div class="levelbar">
+      <div class="levelbar__left">
+        <span class="lvl-eyebrow">Level <b id="lvlNum">1</b> / <span id="lvlTotal">3</span></span>
+        <h2 id="lvlName">Handshake</h2>
+      </div>
+      <div class="levelbar__right">
+        <div class="stat"><b id="statMoves">0</b><span>moves</span></div>
+        <div class="stat"><b id="statBest">—</b><span>par</span></div>
+      </div>
+    </div>
+
+    <p class="brief" id="lvlBrief"></p>
+
+    <!-- board -->
+    <div class="stage">
+      <div class="board" id="board"></div>
+      <div class="bubble" id="bubble" hidden></div>
+
+      <div class="won" id="wonOverlay" hidden>
+        <div class="won__card">
+          <div class="won__seal">✓</div>
+          <h3 id="wonTitle">Level complete</h3>
+          <p id="wonSub">You and the agent got there together.</p>
+          <div class="won__stats">
+            <div><b id="wonMoves">0</b><span>total moves</span></div>
+            <div><b id="wonHuman">0</b><span>yours</span></div>
+            <div><b id="wonRobot">0</b><span>agent's</span></div>
+          </div>
+          <div class="won__btns">
+            <button class="btn btn--ghost" id="wonReplay">Replay</button>
+            <button class="btn btn--primary" id="wonNext">Next level →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="lg"><i class="sw sw--h"></i>You</span>
+      <span class="lg"><i class="sw sw--r"></i>Agent</span>
+      <span class="lg"><i class="sw sw--p1"></i>Red plate → red door</span>
+      <span class="lg"><i class="sw sw--p2"></i>Blue plate → blue door</span>
+      <span class="lg"><i class="sw sw--g"></i>Goals</span>
+    </div>
+
+    <div class="controls">
+      <div class="dpad">
+        <button class="dbtn dbtn--u" data-dir="up">▲</button>
+        <button class="dbtn dbtn--l" data-dir="left">◀</button>
+        <button class="dbtn dbtn--d" data-dir="down">▼</button>
+        <button class="dbtn dbtn--r" data-dir="right">▶</button>
+      </div>
+      <div class="controls__btns">
+        <button class="btn btn--ghost" id="resetBtn">↺ Restart level</button>
+        <button class="btn btn--ghost" id="prevBtn">‹ Prev</button>
+        <button class="btn btn--ghost" id="nextBtn">Next ›</button>
+        <button class="btn btn--hint" id="hintBtn">💡 Hint</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ RIGHT : AGENT PANEL ============ -->
+  <aside class="pane pane--side">
+
+    <div class="side__head">
+      <h3>The Agent</h3>
+      <span class="side__mode" id="agentMode">idle</span>
+    </div>
+
+    <div class="agentcard">
+      <div class="agentcard__top">
+        <div class="avatar">🤖</div>
+        <div>
+          <b id="agentName">Built-in agent</b>
+          <span id="agentSays">Waiting for a level.</span>
+        </div>
+      </div>
+      <div class="agentcard__btns">
+        <button class="btn btn--primary btn--sm" id="agentToggle">▶ Let the agent play</button>
+        <button class="btn btn--ghost btn--sm" id="autoBoth">⏩ Auto-solve both</button>
+      </div>
+      <p class="agentcard__note" id="agentNote">
+        The built-in agent calls the exact same six tools a real WebMCP agent would.
+      </p>
+    </div>
+
+    <div class="side__subhead">
+      <span>Tool calls</span>
+      <button class="btn btn--ghost btn--xs" id="clearLog">Clear</button>
+    </div>
+
+    <div class="log" id="log">
+      <div class="log__empty" id="logEmpty">
+        <p>No tool calls yet.</p>
+        <span>Start the agent, or connect a real WebMCP agent and say: <i>“Play the robot and help me finish this level.”</i></span>
+      </div>
+    </div>
+
+    <div class="side__foot">
+      <details class="tools">
+        <summary>6 tools exposed to agents</summary>
+        <ul id="toolList"></ul>
+      </details>
+    </div>
+  </aside>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="levels.js"></script>
+<script src="game.js"></script>
+<script src="webmcp.js"></script>
+</body>
+</html>
