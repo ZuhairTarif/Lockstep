@@ -82,11 +82,19 @@ game.js      — engine, rendering, input, built-in agent (window.LS)
 webmcp.js    — the 6 tools (defensive across API shapes)
 ```
 
-`levels.js` runs in Node too, so the levels are unit-testable:
+### Tests
+
+A minimal DOM shim (`test-harness.js`) lets the whole game run headlessly, so the
+UI wiring and the tools are actually tested rather than assumed:
 
 ```bash
-node -e "var K=require('./levels.js');K.LEVELS.forEach((l,i)=>{var m=K.parse(l);console.log(i+1,K.solve(m,m.start.h,m.start.r).length+' moves')})"
+node test.js     # 41 assertions
 ```
+
+It verifies every level is solvable, that **no level can be solved without the robot**,
+that overlays open and close, that keyboard and D-pad input move the human, that every
+button fires without throwing, and that all six WebMCP tools behave — including that
+stepping on the red plate really does open the red door.
 
 `webmcp.js` tries `navigator.modelContext.provideContext`, `.registerTool`, `.registerTools`, `window.agent`, and `document.modelContext`, retrying for 10 seconds — so it survives API drift between browsers.
 

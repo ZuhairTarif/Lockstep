@@ -9,6 +9,14 @@
   var K = window.LOCKSTEP;
   var $ = function (id) { return document.getElementById(id); };
 
+  /* Overlay visibility helper.
+     Sets BOTH the hidden attribute and an inline display, so the element stays
+     hidden even if a stylesheet rule (display:grid/flex) would otherwise win,
+     or if a cached stylesheet lacks the [hidden] rule. */
+  function show(el) { if (!el) return; el.hidden = false; el.style.display = ""; }
+  function hide(el) { if (!el) return; el.hidden = true;  el.style.display = "none"; }
+  function isHidden(el) { return !el || el.hidden || el.style.display === "none"; }
+
   var G = {
     idx: 0,
     map: null,
@@ -110,7 +118,7 @@
     $("lvlTotal").textContent = K.LEVELS.length;
     $("lvlName").textContent = G.map.name;
     $("lvlBrief").textContent = G.map.brief;
-    $("wonOverlay").hidden = true;
+    hide($("wonOverlay"));
     $("prevBtn").disabled = G.idx === 0;
     $("nextBtn").disabled = G.idx === K.LEVELS.length - 1;
     hideHint();
@@ -165,7 +173,7 @@
       ? "Three puzzles, neither of you could solve alone."
       : "You and the agent got there together.";
     $("wonNext").textContent = last ? "Back to level 1" : "Next level →";
-    $("wonOverlay").hidden = false;
+    show($("wonOverlay"));
     addLog("submit_result", "Both goals occupied. Level <b>" + G.map.name + "</b> solved in <code>" + G.moves + "</code> moves.", "win");
     say("We did it. " + G.rMoves + " moves from me, " + G.hMoves + " from you.");
     toast("✓ Level complete", "ok");
@@ -195,11 +203,11 @@
     $("agentSays").textContent = msg;
     var b = $("bubble");
     b.textContent = "🤖 " + msg;
-    b.hidden = false;
+    show(b);
     clearTimeout(bubbleT);
-    bubbleT = setTimeout(function () { b.hidden = true; }, 3400);
+    bubbleT = setTimeout(function () { hide(b); }, 3400);
   }
-  function hideBubble() { $("bubble").hidden = true; }
+  function hideBubble() { hide($("bubble")); }
 
   /* ---------------- log ---------------- */
   function addLog(tool, body, tag) {
@@ -222,9 +230,9 @@
     var t = $("toast");
     t.textContent = msg;
     t.className = "toast" + (kind ? " toast--" + kind : "");
-    t.hidden = false;
+    show(t);
     clearTimeout(toastT);
-    toastT = setTimeout(function () { t.hidden = true; }, 2600);
+    toastT = setTimeout(function () { hide(t); }, 2600);
   }
 
   /* ---------------- ASCII view for agents ---------------- */
@@ -375,7 +383,7 @@
   /* =========================================================
      public API
      ========================================================= */
-  window.LS = {
+  var LS = {
     state: G,
     snapshot: snapshot,
     ascii: ascii,
@@ -453,6 +461,7 @@
 
     log: addLog
   };
+  window.LS = LS;
 
   /* ---------------- input ---------------- */
   var KEYMAP = {
@@ -461,8 +470,8 @@
   };
 
   document.addEventListener("keydown", function (e) {
-    if (!$("intro").hidden) {
-      if (e.key === "Escape" || e.key === "Enter") { $("intro").hidden = true; }
+    if (!isHidden($("intro"))) {
+      if (e.key === "Escape" || e.key === "Enter") { hide($("intro")); }
       return;
     }
     if (e.key === "r" || e.key === "R") { LS.resetLevel(); return; }
@@ -489,9 +498,9 @@
   $("wonNext").addEventListener("click", function () {
     load(G.idx === K.LEVELS.length - 1 ? 0 : G.idx + 1);
   });
-  $("helpBtn").addEventListener("click", function () { $("intro").hidden = false; });
-  $("introSolo").addEventListener("click", function () { $("intro").hidden = true; });
-  $("introPlay").addEventListener("click", function () { $("intro").hidden = true; startBot(); });
+  $("helpBtn").addEventListener("click", function () { show($("intro")); });
+  $("introSolo").addEventListener("click", function () { hide($("intro")); });
+  $("introPlay").addEventListener("click", function () { hide($("intro")); startBot(); });
 
   window.addEventListener("resize", function () {
     var old = TILE; px();

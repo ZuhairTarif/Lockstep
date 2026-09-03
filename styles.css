@@ -10,6 +10,9 @@
   --tile:44px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* CRITICAL: any element carrying the `hidden` attribute must stay hidden even
+   when a later rule sets display:grid/flex. Without this, overlays never close. */
+[hidden]{display:none!important}
 html,body{height:100%}
 body{font-family:'Inter',-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--txt);
   -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;overflow:hidden}
